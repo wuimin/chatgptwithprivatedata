@@ -152,7 +152,7 @@ const FilesUploader = (props: FilesUploaderProps) => {
             noClick: true,
             noKeyboard: true,
             accept: type === 1 ? {
-                'text/pdf': ['.pdf'],
+                'text/pdf': ['.pdf','txt'],
             } : undefined 
         });
 

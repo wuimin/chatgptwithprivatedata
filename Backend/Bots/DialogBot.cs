@@ -46,6 +46,7 @@ namespace Backend.Bots
             await _userState.SaveChangesAsync(turnContext, false, cancellationToken);
         }
 
+        //收到的消息活动
         protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
         {
             //handle setDefaultServiceProvider button.
@@ -100,7 +101,7 @@ namespace Backend.Bots
                 {
                     var cardData = new
                     {
-                        text = $"Welcome to chat with GPT bot!",
+                        text = $"This is Link GPT, we urge you not to break Link's policy when using this tool. What can I assist you?",
                     };
 
                     var cardText = _lgEngine.Evaluate("TextResponseCard", cardData);

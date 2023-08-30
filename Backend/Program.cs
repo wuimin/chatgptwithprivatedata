@@ -94,12 +94,21 @@ namespace Backend
 
             var aiOptions = new ApplicationInsightsServiceOptions();
             aiOptions.EnableAdaptiveSampling = false;
+            // Add Application Insights services into service collection
             builder.Services.AddApplicationInsightsTelemetry(aiOptions);
+
+            // Create the telemetry client.
             builder.Services.AddSingleton<IBotTelemetryClient, BotTelemetryClient>();
+
+            // Add telemetry initializer that will set the correlation context for all telemetry items.
             builder.Services.AddSingleton<ITelemetryInitializer, OperationCorrelationTelemetryInitializer>();
+
+            // Add telemetry initializer that sets the user ID and session ID (in addition to other bot-specific properties such as activity ID)
             builder.Services.AddSingleton<ITelemetryInitializer, TelemetryBotIdInitializer>();
+            // Create the telemetry middleware to initialize telemetry gathering
             builder.Services.AddSingleton<TelemetryInitializerMiddleware>();
 
+            // Create the telemetry middleware (used by the telemetry initializer) to track conversation events
             builder.Services.AddSingleton<TelemetryLoggerMiddleware>(s => new TelemetryLoggerMiddleware(s.GetService<IBotTelemetryClient>(), true));
 
             // Add services to the container.

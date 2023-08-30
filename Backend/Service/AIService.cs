@@ -5,6 +5,7 @@ using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
+using Backend.Dialogs;
 using Backend.Model;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -130,8 +131,9 @@ namespace Backend.Service
         /// <param name="question"></param>
         /// <param name="history"></param>
         /// <returns></returns>
-        public async Task<(string englishQuestion, string chineseQuestion)> GetFullContextQuestionAsync(string question, IList<ChatTurn> history)
+        public async Task<(bool isnormal , string englishQuestion, string chineseQuestion)> GetFullContextQuestionAsync(string question, IList<ChatTurn> history)
         {
+            bool isnormal = true;
             string? internalChineseQuestion = string.Empty;
             string? internalEnglishQuestion = string.Empty;
             if (IsChinese(question))
@@ -166,7 +168,7 @@ namespace Backend.Service
             var count = Math.Max(GetTokenCount(chinesePrompt), GetTokenCount(englishPrompt));
             if (count>3000)
             {
-                return (internalEnglishQuestion, internalChineseQuestion);
+                return (isnormal, internalEnglishQuestion, internalChineseQuestion);
             }
 
 
@@ -182,13 +184,23 @@ namespace Backend.Service
                 FrequencyPenalty=0,
                 PresencePenalty=0,
             };
-            var deploymentOrModelName = "text-davinci-003";
-            var result = _azureOpenAIClient.GetCompletions(deploymentOrModelName, completionsOptions);
-            internalEnglishQuestion = result?.Value?.Choices?[0]?.Text??internalEnglishQuestion;
-            internalChineseQuestion = result?.Value?.Choices?[1]?.Text??internalChineseQuestion;
+            var deploymentOrModelName = "davinci"; //"text-davinci-003";
+          
+            try
+            {
+               
+               var  result = _azureOpenAIClient.GetCompletions(deploymentOrModelName, completionsOptions);
+                internalEnglishQuestion = result?.Value?.Choices?[0]?.Text ?? internalEnglishQuestion;
+                internalChineseQuestion = result?.Value?.Choices?[1]?.Text ?? internalChineseQuestion;
 
-            _logger.LogInformation($"internalEnglishQuestion:{internalEnglishQuestion},internalChineseQuestion:{internalChineseQuestion}");
-            return (internalEnglishQuestion.Trim(), internalChineseQuestion.Trim());
+                _logger.LogInformation($"internalEnglishQuestion:{internalEnglishQuestion},internalChineseQuestion:{internalChineseQuestion}");
+                return (isnormal, internalEnglishQuestion.Trim(), internalChineseQuestion.Trim());
+            }
+            catch (Exception ex) {
+                return (false, "", "");
+            }
+
+          
         }
 
         /// <summary>
@@ -296,12 +308,12 @@ namespace Backend.Service
         /// <param name="history"></param>
         /// <param name="refContent"></param>
         /// <returns></returns>
-        public async Task<string> GetChatGPTAnswerAsync(string question, IList<ChatTurn> history, string refContent, string? style = null)
+        public async Task<(bool, string)> GetChatGPTAnswerAsync(string question, IList<ChatTurn> history, string refContent, string? style = null)
         {
             var answer = string.Empty;
 
             var needRefContent = !string.IsNullOrEmpty(refContent);
-            var temperature = 0.5f;
+            var temperature = 0.2f;
             int count = 0;
             var messages = new List<ChatMessage>();
             var prefix = string.Empty;
@@ -311,7 +323,7 @@ namespace Backend.Service
 
                 if (string.IsNullOrEmpty(prefix))
                 {
-                    return answer;
+                     return (true,answer);
                 }
                 prefix=needRefContent ? string.Format(prefix+"\n", refContent) : prefix;
             }
@@ -340,6 +352,11 @@ namespace Backend.Service
 
                 if (count>3000)
                 {
+                    if (messages.Count > 2)
+                    {
+                        messages.RemoveAt(messages.Count - 1);
+                    }
+
                     break;
                 }
                 messages.Insert(1, new Azure.AI.OpenAI.ChatMessage(ChatRole.Assistant, history[i].Assistant));
@@ -350,13 +367,13 @@ namespace Backend.Service
             count= GetTokenCount(string.Join("\n", messages.SelectMany(x => new[] { x.Role+x.Content })));
             if (count>4000)
             {
-                return "What you said is too long, please take your time.";
+                return (false,"system is busy and reach the request limit, please ask me this question again later."); 
             }
-            var deploymentOrModelName = "gpt-35-turbo";
+            var deploymentOrModelName = "gpt-35-turbo-16k";
             var chatCompletionsOptions = new ChatCompletionsOptions()
             {
                 Temperature=temperature,
-                MaxTokens=4020-count,
+                MaxTokens=6000-count,
                 FrequencyPenalty=0,
                 PresencePenalty=0
             };
@@ -364,12 +381,15 @@ namespace Backend.Service
             {
                 chatCompletionsOptions.Messages.Add(message);
             }
+            try
+            {
+                var completionResult = await _azureOpenAIClient.GetChatCompletionsAsync(deploymentOrModelName, chatCompletionsOptions);
 
-            var completionResult = await _azureOpenAIClient.GetChatCompletionsAsync(deploymentOrModelName, chatCompletionsOptions);
-
-            answer = completionResult?.Value?.Choices?.FirstOrDefault()?.Message.Content??string.Empty;
-
-            return answer;
+                answer = completionResult?.Value?.Choices?.FirstOrDefault()?.Message.Content ?? string.Empty;
+            } catch (Exception ex) {
+                return  (false, "Sorry, I cannot provide inforamtion on illegal and unethical questions!");
+            }
+            return (true, answer) ;
         }
 
         /// <summary>
@@ -414,10 +434,10 @@ namespace Backend.Service
             {
                 return null;
             }
-            var deploymentOrModelName = "gpt-35-turbo";
+            var deploymentOrModelName = "gpt-35-turbo-16k";
             var chatCompletionsOptions = new ChatCompletionsOptions()
             {
-                Temperature=0.5f,
+                Temperature=0.2f,
                 MaxTokens=4020-count,
                 FrequencyPenalty=0,
                 PresencePenalty=0
@@ -716,14 +736,21 @@ namespace Backend.Service
             foreach(var section in sections)
             {
                 var content = string.Empty;
-                var fileNameWithoutExt = Path.GetFileNameWithoutExtension(section["sourcefile"]);
-                if (fileNameWithoutExt.EndsWith("-cn"))
+                //var fileNameWithoutExt = Path.GetFileNameWithoutExtension(section["sourcefile"]);
+                //if (fileNameWithoutExt.EndsWith("-cn"))
+                //{
+                //    content=section["content_cn"];
+                //}
+                //else
+                //{
+                //    content=section["content_en"];
+                //}
+
+                if(section.ContainsKey("content_en"))
                 {
-                    content=section["content_cn"];
-                }
-                else
-                {
-                    content=section["content_en"];
+                    content = section["content_en"];
+                } else {
+                    content = section["content_cn"];
                 }
                 
                 var embedding= await GetEmbeddingAsync(content);

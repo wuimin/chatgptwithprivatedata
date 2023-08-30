@@ -30,10 +30,13 @@ namespace Backend.Controllers
             var history = chatRequest.History.Select(x => new ChatTurn { User=x.User, Assistant=x.Bot }).ToList(); ;
             var question = history.Last().User;
             history.RemoveAt(history.Count - 1);
-            (var internalEnglishQuestion, var internalChineseQuestion) = await _aiService.GetFullContextQuestionAsync(question, history);
+            (bool isnormal,var internalEnglishQuestion, var internalChineseQuestion) = await _aiService.GetFullContextQuestionAsync(question, history);
+            if (isnormal==false) {
+                return Forbid();
+            }
             var results =_aiService.SearchVectorAsync(internalEnglishQuestion);
             var refContent = string.Join("\n", results.Result.Where(x => x.Score > 0.75).Select(x => x.Payload?["SourcePage"]+":"+ x.Payload?["Content"].Replace("\n", "").Replace("\r", "")).ToList());
-            var answer=await _aiService.GetChatGPTAnswerAsync(question, history, refContent);
+           (bool isnormal_3, var answer)=await _aiService.GetChatGPTAnswerAsync(question, history, refContent);
 
             AskResponse response = new AskResponse
             {

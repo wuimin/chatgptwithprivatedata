@@ -21,13 +21,14 @@ const Pages = () => {
 
 const App = (props: any) => {
     const { pca } = props;
-    const [isLogin, setIsLogin] = useState(false)
+    const [isLogin, setIsLogin] = useState(true)
     const [userName, setUserName] = useState('');
     const [password, setPassword] = useState('');
 
 
     const onLogin = () => {
-        if (userName === "admin" && password === "Microsoft123.") {
+        //Microsoft123
+        if (userName === "admin" && password === "123456") {
             setIsLogin(true);
         }
     }
@@ -44,6 +45,7 @@ const App = (props: any) => {
         const newValue = event.target.value;
         setPassword(newValue);
     };
+
     return (isLogin?
 
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>

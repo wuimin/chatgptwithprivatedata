@@ -1,0 +1,56 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.14/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.14",
+  "version": "1.0.0",
+  "id": "dbaf2cb2-94ed-42e2-b661-c658836353e4",
+  "packageName": "com.teams.chatgpt.poc",
+  "developer": {
+    "name": "poc-bot-chatgpt",
+    "websiteUrl": "https://www.microsoft.com",
+    "privacyUrl": "https://www.teams.com/privacy",
+    "termsOfUseUrl": "https://www.teams.com/termsofuser"
+  },
+  "icons": {
+    "outline": "icon-outline.png",
+    "color": "icon-color.png"
+  },
+  "name": {
+    "short": "poc-bot-chatgpt",
+    "full": "poc-bot-chatgpt"
+  },
+  "description": {
+    "short": "poc-bot-chatgpt",
+    "full": "poc-bot-chatgpt"
+  },
+  "accentColor": "#FFFFFF",
+  "bots": [
+    {
+      "botId": "3a41818b-e425-4c21-8bf6-7a544afabee8",
+      "scopes": [
+        "personal",
+        "groupchat",
+        "team"
+      ],
+      "isNotificationOnly": false,
+      "supportsCalling": false,
+      "supportsVideo": false,
+      "supportsFiles": false,
+      "commandLists": [
+        {
+          "scopes": [
+            "personal",
+            "groupchat",
+            "team"
+          ],
+          "commands": [
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [ "https://teamschatbotforlinkreit.azurewebsites.net"]
+}

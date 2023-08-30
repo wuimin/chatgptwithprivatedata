@@ -98,6 +98,8 @@ const SiteTitle = (props: any) => {
                     mr: 1
                 }}
             />
+            <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+
             <Link to={to} style={{ textDecoration: 'none', display: 'contents' }}>
                 <Button variant="text"
                     onClick={navCloseHandler}
